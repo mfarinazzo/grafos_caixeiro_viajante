@@ -5,7 +5,7 @@ import numpy as np
 # Função para criar matriz de adjacência a partir da lista de arestas
 # edges: lista de tuplas (u, v, peso)
 def criar_matriz_adjacencia(edges, n):
-    matriz = [[float('inf')] * n for _ in range(n)]
+    matriz = [[float('inf')] * (n+1) for _ in range(n+1)]  # n+1 para indexar de 1 a n
     for u, v, peso in edges:
         matriz[u][v] = peso
         matriz[v][u] = peso  # grafo não direcionado
@@ -23,25 +23,49 @@ def peso_ciclo(ciclo, matriz):
 
 # Algoritmo Dois-Otimal (2-Opt)
 def dois_opt(matriz, ciclo):
-    n = len(ciclo) - 1
-    melhorou = True
-    while melhorou:
-        melhorou = False
-        for i in range(1, n-1):
-            for j in range(i+1, n):
-                if j - i == 1:
-                    continue  # não faz sentido inverter arestas adjacentes
-                novo_ciclo = ciclo[:i] + ciclo[i:j][::-1] + ciclo[j:]
-                w_atual = peso_ciclo(ciclo, matriz)
-                w_novo = peso_ciclo(novo_ciclo, matriz)
-                print(f"Tentando inversão entre {ciclo[i]} e {ciclo[j-1]}: ciclo = {novo_ciclo}")
-                print(f"  Peso atual: {w_atual} | Peso após inversão: {w_novo}")
-                print(f"  wij (arestas trocadas): ({ciclo[i-1]},{ciclo[i]}) + ({ciclo[j-1]},{ciclo[j]}) -> ({ciclo[i-1]},{ciclo[j-1]}) + ({ciclo[i]},{ciclo[j]})")
-                print(f"  Pesos: {matriz[ciclo[i-1]][ciclo[i]]} + {matriz[ciclo[j-1]][ciclo[j]]} -> {matriz[ciclo[i-1]][ciclo[j-1]]} + {matriz[ciclo[i]][ciclo[j]]}\n")
-                if w_novo < w_atual:
-                    ciclo = novo_ciclo
-                    melhorou = True
+    n = len(ciclo) - 1  # ciclo inclui o retorno ao início
+    w = peso_ciclo(ciclo, matriz)
+    i = 0
+    j = i + 2
+    while i <= n - 2:
+        if j > n - 1:
+            i += 1
+            if i <= n - 2:
+                j = i + 2
+            continue
+        # Troca o segmento entre i+1 e j (inclusive)
+        Cij = ciclo[:i+1] + ciclo[i+1:j+1][::-1] + ciclo[j+1:]
+        # Cálculo incremental do novo peso
+        w_ij = (
+            w
+            - matriz[ciclo[i]][ciclo[i+1]]
+            - matriz[ciclo[j]][ciclo[(j+1)%n]]
+            + matriz[ciclo[i]][ciclo[j]]
+            + matriz[ciclo[i+1]][ciclo[(j+1)%n]]
+        )
+        print(f"Testando inversão entre {ciclo[i+1]} e {ciclo[j]}: ciclo = {Cij}")
+        print(f"  Peso atual: {w} | Peso após inversão: {w_ij}")
+        if w_ij < w:
+            ciclo = Cij
+            w = w_ij
+            i = 0
+            j = i + 2
+        else:
+            j += 1
     return ciclo
+
+# Função para testar todas as permutações possíveis e encontrar o ciclo de menor peso
+def brute_force_tsp(matriz, n):
+    vertices = list(range(2, n+1))  # fixa o vértice 1 como início/fim
+    melhor_ciclo = None
+    melhor_peso = float('inf')
+    for perm in itertools.permutations(vertices):
+        ciclo = [1] + list(perm) + [1]
+        peso = peso_ciclo(ciclo, matriz)
+        if peso < melhor_peso:
+            melhor_peso = peso
+            melhor_ciclo = ciclo
+    return melhor_ciclo, melhor_peso
 
 # Função para plotar o grafo e o ciclo encontrado
 # Os vértices serão posicionados em círculo para visualização
@@ -94,7 +118,7 @@ if __name__ == "__main__":
         (6, 7, 7)
     ]
     n = 7
-    matriz = criar_matriz_adjacencia(edges, n+1)  # n+1 para incluir o vértice 7
+    matriz = criar_matriz_adjacencia(edges, n)  # n em vez de n+1
     ciclo = list(range(1, n+1))
     ciclo.append(1)  # volta ao início
     print("Ciclo inicial:", ciclo)
@@ -103,3 +127,9 @@ if __name__ == "__main__":
     print("Ciclo otimizado:", ciclo_otimizado)
     print("Peso otimizado:", peso_ciclo(ciclo_otimizado, matriz))
     plotar_ciclo(ciclo_otimizado, matriz)
+
+    print("\n--- Força Bruta (ótimo global) ---")
+    ciclo_bruto, peso_bruto = brute_force_tsp(matriz, n)
+    print("Melhor ciclo (força bruta):", ciclo_bruto)
+    print("Peso ótimo global:", peso_bruto)
+    plotar_ciclo(ciclo_bruto, matriz)
