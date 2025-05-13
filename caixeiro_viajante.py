@@ -32,10 +32,15 @@ def dois_opt(matriz, ciclo):
                 if j - i == 1:
                     continue  # não faz sentido inverter arestas adjacentes
                 novo_ciclo = ciclo[:i] + ciclo[i:j][::-1] + ciclo[j:]
-                if peso_ciclo(novo_ciclo, matriz) < peso_ciclo(ciclo, matriz):
+                w_atual = peso_ciclo(ciclo, matriz)
+                w_novo = peso_ciclo(novo_ciclo, matriz)
+                print(f"Tentando inversão entre {ciclo[i]} e {ciclo[j-1]}: ciclo = {novo_ciclo}")
+                print(f"  Peso atual: {w_atual} | Peso após inversão: {w_novo}")
+                print(f"  wij (arestas trocadas): ({ciclo[i-1]},{ciclo[i]}) + ({ciclo[j-1]},{ciclo[j]}) -> ({ciclo[i-1]},{ciclo[j-1]}) + ({ciclo[i]},{ciclo[j]})")
+                print(f"  Pesos: {matriz[ciclo[i-1]][ciclo[i]]} + {matriz[ciclo[j-1]][ciclo[j]]} -> {matriz[ciclo[i-1]][ciclo[j-1]]} + {matriz[ciclo[i]][ciclo[j]]}\n")
+                if w_novo < w_atual:
                     ciclo = novo_ciclo
                     melhorou = True
-        # Se não melhorou, termina
     return ciclo
 
 # Função para plotar o grafo e o ciclo encontrado
